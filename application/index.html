@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Home</title>
+</head>
+<script src="https://unpkg.com/htmx.org@2.0.2" integrity="sha384-Y7hw+L/jvKeWIRRkqWYfPcvVxHzVzn5REgzbawhxAuQGwX1XWe70vji+VSeHOThJ" crossorigin="anonymous"></script>
+<body>
+    <h1>Welcome to your progress tracker</h1>
+    <p>please enter the activities that you would like to track and how many hours you have so far</p>
+    <form hx-post="/activities" method="post">
+        <input id="activity" name="activity" type="text" placeholder="guitar" required>
+        <input id="hours" name="id" type="number" placeholder="4 hours so far" required>
+        <button type="submit">
+            add activity
+        </button>
+    </form>
+    <button hx-get="/time">Click to see the time</button>
+</body>
+</html>
