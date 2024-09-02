@@ -1,18 +1,56 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"log"
+	"github.com/joho/godotenv"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"net/http"
+	"os"
 )
 
 type Activity struct {
-	name string
+	name      string
 	timeframe string
-	time int
+	time      int
 }
 
 func main() {
-	// Define a handler function
+
+	err := godotenv.Load()
+    if err != nil {
+        log.Fatal("Error loading .env file")
+    }
+
+	dbPassword := os.Getenv("DB_PASSWORD")
+
+	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
+	opts := options.Client().ApplyURI("mongodb+srv://Cluster06464:" + dbPassword + "@cluster06464.gnoqq.mongodb.net/?retryWrites=true&w=majority&appName=Cluster06464").SetServerAPIOptions(serverAPI)
+
+	client, err := mongo.Connect(context.TODO(), opts)
+	if err != nil {
+		panic(err)
+	}
+
+	defer func() {
+		if err = client.Disconnect(context.TODO()); err != nil {
+			panic(err)
+		}
+	}()
+	// Send a ping to confirm a successful connection
+	if err := client.Database("admin").RunCommand(context.TODO(), bson.D{{"ping", 1}}).Err(); err != nil {
+		panic(err)
+	}
+	fmt.Println("Pinged your deployment. You successfully connected to MongoDB!")
+
+
+
+
+
+	
 
 	activities := []Activity{}
 
@@ -37,7 +75,6 @@ func main() {
 
 	})
 
-
 	http.HandleFunc("/getActivityForm", func(w http.ResponseWriter, r *http.Request) {
 
 		fmt.Fprintf(w,
@@ -57,7 +94,7 @@ func main() {
 		`)
 	})
 
-	http.HandleFunc("/displayActivities", func(w http.ResponseWriter, r *http.Request){
+	http.HandleFunc("/displayActivities", func(w http.ResponseWriter, r *http.Request) {
 		if len(activities) > 0 {
 			for _, activity := range activities {
 				fmt.Fprintf(w, `<p>Activity: %s, Hours spent: 0, time frame: %s</p>`, activity.name, activity.timeframe)
