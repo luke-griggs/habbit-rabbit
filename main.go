@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"github.com/joho/godotenv"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"net/http"
 	"os"
+
+	"github.com/joho/godotenv"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type Activity struct {
@@ -21,9 +23,9 @@ type Activity struct {
 func main() {
 
 	err := godotenv.Load()
-    if err != nil {
-        log.Fatal("Error loading .env file")
-    }
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 
 	dbPassword := os.Getenv("DB_PASSWORD")
 
@@ -46,13 +48,27 @@ func main() {
 	}
 	fmt.Println("Pinged your deployment. You successfully connected to MongoDB!")
 
+	collection := client.Database("Habbit_Rabbit").Collection("Users")
 
+	newUser := map[string]interface{}{
+		"activities": map[string]string{},
+	}
 
+	res, err := collection.InsertOne(context.TODO(), newUser)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(res.InsertedID)
 
-
-	
+	insertedID, ok := res.InsertedID.(primitive.ObjectID)
+	if !ok {
+		log.Fatal("wrong type")
+	}
 
 	activities := []Activity{}
+
+
+
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
@@ -64,12 +80,33 @@ func main() {
 	http.HandleFunc("/addActivity", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
 		}
 
 		activityName := r.FormValue("activityName")
 		activityTimeFrame := r.FormValue("timeFrame")
 
 		activities = append(activities, Activity{activityName, activityTimeFrame, 0})
+
+		{ /* database insertion based on the insertedID*/}
+		
+
+		filter := bson.M{"_id": insertedID}
+
+		updateKey := "activities." + activityName
+
+		update := bson.M{
+			"$set": bson.M{
+				updateKey: activityTimeFrame,
+			},
+		}
+
+		result, err := collection.UpdateOne(context.TODO(), filter, update)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println(result)
 
 		w.Write([]byte(""))
 
